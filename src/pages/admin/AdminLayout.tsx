@@ -13,6 +13,7 @@ import {
   LogOut,
   Menu as MenuIcon,
   Settings,
+  ShieldCheck,
   ShoppingBag,
   UtensilsCrossed,
 } from 'lucide-react'
@@ -32,13 +33,15 @@ const NAV = [
   { to: '/admin/hours', label: 'Business Hours', icon: Clock, end: false },
   { to: '/admin/blocked-dates', label: 'Blocked Dates', icon: CalendarOff, end: false },
   { to: '/admin/settings', label: 'Restaurant Settings', icon: Settings, end: false },
+  { to: '/admin/admins', label: 'Admins', icon: ShieldCheck, end: false, superOnly: true },
 ]
 
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { awaiting } = useAdminOrders()
+  const { isSuperAdmin } = useAuth()
   return (
     <nav className="snav" aria-label="Dashboard">
-      {NAV.map(({ to, label, icon: Icon, end, badge }) => (
+      {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ to, label, icon: Icon, end, badge }) => (
         <NavLink key={to} to={to} end={end} onClick={onNavigate} className={({ isActive }) => `snav__link${isActive ? ' is-active' : ''}`}>
           <Icon size={19} />
           <span>{label}</span>

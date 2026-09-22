@@ -2,14 +2,17 @@ import { FunctionsFetchError, FunctionsHttpError, FunctionsRelayError } from '@s
 import { supabase } from './supabase'
 import { AppError } from './errors'
 import type {
+  AdminAccount,
+  AdminAccountInput,
   CaptureResponse,
+  Id,
   OrderCheckoutRequest,
   OrderCheckoutResponse,
   ReservationCheckoutRequest,
   ReservationCheckoutResponse,
 } from './types'
 
-async function callFunction<T>(name: 'create-checkout' | 'capture-checkout', body: unknown): Promise<T> {
+async function callFunction<T>(name: 'create-checkout' | 'capture-checkout' | 'manage-admins', body: unknown): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, { body: body as Record<string, unknown> })
   if (!error) return data as T
 
@@ -35,4 +38,21 @@ export function createReservationCheckout(request: ReservationCheckoutRequest) {
 
 export function captureCheckout(paypalOrderId: string) {
   return callFunction<CaptureResponse>('capture-checkout', { paypalOrderId })
+}
+
+export async function listAdmins(): Promise<AdminAccount[]> {
+  return (await callFunction<{ admins: AdminAccount[] }>('manage-admins', { action: 'list' })).admins
+}
+
+export function createAdmin(input: AdminAccountInput) {
+  return callFunction<{ user_id: Id }>('manage-admins', { action: 'create', ...input })
+}
+
+/** An empty password keeps the current one. */
+export function updateAdmin(userId: Id, input: AdminAccountInput) {
+  return callFunction<{ user_id: Id }>('manage-admins', { action: 'update', user_id: userId, ...input })
+}
+
+export function removeAdmin(userId: Id) {
+  return callFunction<{ user_id: Id }>('manage-admins', { action: 'remove', user_id: userId })
 }

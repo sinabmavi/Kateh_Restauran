@@ -163,6 +163,24 @@ export interface Payment {
   captured_at: string | null
 }
 
+export type AdminRole = 'admin' | 'super_admin'
+
+export interface AdminAccount {
+  user_id: Id
+  full_name: string | null
+  email: string | null
+  role: AdminRole
+  created_at: string
+  last_sign_in_at: string | null
+}
+
+export interface AdminAccountInput {
+  full_name: string
+  email: string
+  password: string
+  role: AdminRole
+}
+
 export interface BusySlot {
   table_id: Id
   start_time: string

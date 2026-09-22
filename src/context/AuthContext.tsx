@@ -18,6 +18,8 @@ interface AuthState {
   /** True until the stored session has been read. */
   loading: boolean
   isAdmin: boolean
+  /** Super admins can also add, edit and remove other admins. */
+  isSuperAdmin: boolean
   /** False while the admin check for the current user is still running. Never redirect before this is true. */
   adminChecked: boolean
   signIn: (email: string, password: string) => Promise<void>
@@ -43,11 +45,12 @@ async function loadProfile(user: User): Promise<Profile> {
   )
 }
 
-async function checkAdmin(user: User): Promise<boolean> {
-  const row = await supabase.from('admin_users').select('id').eq('user_id', user.id).maybeSingle()
-  if (!row.error) return Boolean(row.data)
+async function checkAdmin(user: User): Promise<{ isAdmin: boolean; isSuperAdmin: boolean }> {
+  // `*` rather than named columns so this keeps working before the `role` column exists.
+  const row = await supabase.from('admin_users').select('*').eq('user_id', user.id).maybeSingle()
+  if (!row.error) return { isAdmin: Boolean(row.data), isSuperAdmin: (row.data as { role?: string } | null)?.role === 'super_admin' }
   const fallback = await supabase.rpc('is_admin')
-  return fallback.error ? false : Boolean(fallback.data)
+  return { isAdmin: fallback.error ? false : Boolean(fallback.data), isSuperAdmin: false }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -55,6 +58,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [isAdmin, setIsAdmin] = useState(false)
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
   const [adminChecked, setAdminChecked] = useState(false)
 
   useEffect(() => {
@@ -74,6 +78,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (!user) {
       setProfile(null)
       setIsAdmin(false)
+      setIsSuperAdmin(false)
       setAdminChecked(true)
       return
     }
@@ -82,7 +87,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     Promise.allSettled([loadProfile(user), checkAdmin(user)]).then(([profileResult, adminResult]) => {
       if (cancelled) return
       setProfile(profileResult.status === 'fulfilled' ? profileResult.value : null)
-      setIsAdmin(adminResult.status === 'fulfilled' && adminResult.value)
+      setIsAdmin(adminResult.status === 'fulfilled' && adminResult.value.isAdmin)
+      setIsSuperAdmin(adminResult.status === 'fulfilled' && adminResult.value.isSuperAdmin)
       setAdminChecked(true)
     })
     return () => {
@@ -127,8 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   )
 
   const value = useMemo<AuthState>(
-    () => ({ session, user, profile, loading, isAdmin, adminChecked, signIn, signUp, signOut, saveProfile }),
-    [session, user, profile, loading, isAdmin, adminChecked, signIn, signUp, signOut, saveProfile],
+    () => ({ session, user, profile, loading, isAdmin, isSuperAdmin, adminChecked, signIn, signUp, signOut, saveProfile }),
+    [session, user, profile, loading, isAdmin, isSuperAdmin, adminChecked, signIn, signUp, signOut, saveProfile],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

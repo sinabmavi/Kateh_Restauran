@@ -7,3 +7,6 @@ verify_jwt = false
 
 [functions.capture-checkout]
 verify_jwt = false
+
+[functions.manage-admins]
+verify_jwt = false

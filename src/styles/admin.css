@@ -1205,3 +1205,16 @@ a.metric:hover {
     width: 100%;
   }
 }
+
+.admin-initials {
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 17px;
+  color: var(--gold-ink);
+}
+
+.admin-you {
+  margin-left: 8px;
+  vertical-align: middle;
+}

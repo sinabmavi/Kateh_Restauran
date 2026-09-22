@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { Route, Routes } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 import NotFoundPage from '../NotFound'
 import { AdminOrdersProvider } from './AdminOrdersContext'
 import AdminLayout from './AdminLayout'
+import AdminsPage from './Admins'
 import BlockedDatesPage from './BlockedDates'
 import BusinessHoursPage from './BusinessHours'
 import MenuItemsPage from './MenuItems'
@@ -15,6 +17,8 @@ import TablesPage from './Tables'
 
 /** Everything under /admin. The dashboard uses Inter only; the flag below swaps the serif font for it. */
 export default function AdminApp() {
+  const { isSuperAdmin } = useAuth()
+
   useEffect(() => {
     document.body.classList.add('is-admin')
     return () => document.body.classList.remove('is-admin')
@@ -33,6 +37,7 @@ export default function AdminApp() {
           <Route path="hours" element={<BusinessHoursPage />} />
           <Route path="blocked-dates" element={<BlockedDatesPage />} />
           <Route path="settings" element={<SettingsPage />} />
+          {isSuperAdmin && <Route path="admins" element={<AdminsPage />} />}
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>
