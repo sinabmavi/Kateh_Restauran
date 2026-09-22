@@ -61,7 +61,7 @@
   margin-bottom: 22px;
 }
 
-.page__head > div {
+.page__head>div {
   min-width: 0;
 }
 
@@ -167,8 +167,8 @@
 
 .logo__name {
   font-family: var(--font-serif);
-  font-size: 19px;
-  font-weight: 700;
+  font-size: 15px;
+  font-weight: 800;
   letter-spacing: 0.22em;
   text-transform: uppercase;
   white-space: nowrap;
@@ -1312,7 +1312,7 @@
   }
 }
 
-.how > .reveal {
+.how>.reveal {
   display: flex;
 }
 
@@ -1674,7 +1674,7 @@
   margin: 0;
 }
 
-.totals > div {
+.totals>div {
   display: flex;
   justify-content: space-between;
   gap: 12px;
@@ -1776,12 +1776,12 @@
   list-style: none;
 }
 
-.summary-lines + .totals {
+.summary-lines+.totals {
   margin-top: 16px;
 }
 
-.checkout__h + .summary-lines,
-.checkout__h + .contact-list {
+.checkout__h+.summary-lines,
+.checkout__h+.contact-list {
   margin-top: 14px;
 }
 
@@ -2238,6 +2238,7 @@ a.list__title:hover {
     transform: scale(1);
     opacity: 0.9;
   }
+
   to {
     transform: scale(1.9);
     opacity: 0;
@@ -2605,7 +2606,7 @@ a.list__title:hover {
   text-align: left;
 }
 
-.result__summary > div {
+.result__summary>div {
   display: flex;
   justify-content: space-between;
   gap: 16px;
@@ -2613,7 +2614,7 @@ a.list__title:hover {
   border-bottom: 1px solid var(--line);
 }
 
-.result__summary > div:last-child {
+.result__summary>div:last-child {
   border-bottom: 0;
 }
 
@@ -2654,7 +2655,7 @@ a.list__title:hover {
   gap: 14px;
 }
 
-.more__account > div {
+.more__account>div {
   flex: 1;
   min-width: 0;
 }
@@ -2697,11 +2698,11 @@ a.list__title:hover {
   border-bottom: 0;
 }
 
-.more__link > svg:first-child {
+.more__link>svg:first-child {
   color: var(--gold);
 }
 
-.more__link > svg:last-child {
+.more__link>svg:last-child {
   margin-left: auto;
   color: var(--muted);
 }
