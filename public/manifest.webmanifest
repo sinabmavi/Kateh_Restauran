@@ -1,0 +1,20 @@
+{
+  "name": "Kateh Persian Restaurant",
+  "short_name": "Kateh",
+  "description": "Persian & Iranian dining — dine-in, takeaway and delivery. Order online, pay with PayPal and reserve a table.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f6efe2",
+  "theme_color": "#1b130d",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml" }
+  ],
+  "shortcuts": [
+    { "name": "Menu", "url": "/menu" },
+    { "name": "Book a table", "url": "/reserve" }
+  ]
+}

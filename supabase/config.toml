@@ -1,0 +1,9 @@
+# Function-level settings used by `supabase functions deploy`.
+# JWT verification is handled inside the functions: guests may reserve without an account, and the browser sends
+# a publishable key (not a JWT) when nobody is signed in, so the gateway check must be off.
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.capture-checkout]
+verify_jwt = false
