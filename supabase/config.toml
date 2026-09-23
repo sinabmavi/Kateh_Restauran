@@ -10,3 +10,7 @@ verify_jwt = false
 
 [functions.manage-admins]
 verify_jwt = false
+
+# Called by the reservations database trigger, which sends no user token. The function trusts only the reservation id.
+[functions.reservation-email]
+verify_jwt = false
