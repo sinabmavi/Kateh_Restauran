@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CalendarCheck, Check, TriangleAlert, X } from 'lucide-react'
+import { CalendarCheck, Check, RefreshCw, TriangleAlert, X } from 'lucide-react'
 import { AdminPageHead } from '../../components/admin'
 import { PaymentBadge, ReservationStatusBadge } from '../../components/badges'
 import { ConfirmDialog } from '../../components/ui/Sheet'
@@ -58,7 +58,15 @@ export default function ReservationsPage() {
 
   return (
     <>
-      <AdminPageHead title="Reservations" subtitle="Confirm, complete or cancel bookings. Guests are never told a table is free unless it is." />
+      <AdminPageHead
+        title="Reservations"
+        subtitle="Confirm, complete or cancel bookings. Guests are never told a table is free unless it is."
+        actions={
+          <button type="button" className="btn btn--ghost btn--sm" disabled={state.loading} onClick={state.reload}>
+            <RefreshCw size={15} /> {state.loading && state.data ? 'Refreshing…' : 'Refresh'}
+          </button>
+        }
+      />
 
       <div className="toolbar toolbar--fields">
         <Field label="Status" htmlFor="rf-status">
