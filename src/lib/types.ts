@@ -163,6 +163,18 @@ export interface Payment {
   captured_at: string | null
 }
 
+/** One of the 4 homepage slider banners. Empty text/image fields fall back to the built-in defaults. */
+export interface HeroBanner {
+  id: number
+  name: string
+  kicker: string | null
+  title: string | null
+  description: string | null
+  button_label: string | null
+  image_url: string | null
+  updated_at: string
+}
+
 export type AdminRole = 'admin' | 'super_admin'
 
 export interface AdminAccount {

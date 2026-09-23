@@ -6,6 +6,7 @@ import { Sheet } from '../../components/ui/Sheet'
 import { SmartImage } from '../../components/ui/SmartImage'
 import { useRequiredSettings } from '../../context/SettingsContext'
 import { useToast } from '../../context/ToastContext'
+import { ImageUpload } from './ImageUpload'
 import { useAsync } from '../../hooks/useAsync'
 import { buildCategories, categoryGroup } from '../../lib/categories'
 import { errorMessage, unwrap } from '../../lib/errors'
@@ -32,6 +33,7 @@ export default function MenuItemsPage() {
   const toast = useToast()
   const [draft, setDraft] = useState<Draft | null>(null)
   const [busy, setBusy] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [search, setSearch] = useState('')
   const [category, setCategory] = useState('')
   const state = useAsync(async () => unwrap<MenuItem[]>(await supabase.from('menu_items').select('*').order('category', { ascending: true }).order('name', { ascending: true })).map((item) => ({ ...item, price: Number(item.price) })), [])
@@ -213,7 +215,7 @@ export default function MenuItemsPage() {
             <button type="button" className="btn btn--ghost" onClick={() => setDraft(null)}>
               Cancel
             </button>
-            <button type="submit" form="dish-form" className="btn btn--gold" disabled={busy}>
+            <button type="submit" form="dish-form" className="btn btn--gold" disabled={busy || uploading}>
               {busy ? 'Saving…' : 'Save dish'}
             </button>
           </>
@@ -244,9 +246,14 @@ export default function MenuItemsPage() {
                 </datalist>
               </Field>
             </div>
-            <Field label="Image link" htmlFor="mi-image" hint="Paste the link to a photo. Leave blank to use the category photo.">
-              <input id="mi-image" className="input" type="url" inputMode="url" placeholder="https://…" value={draft.image_url} onChange={(event) => setDraft({ ...draft, image_url: event.target.value })} />
-            </Field>
+            <ImageUpload
+              label="Dish photo"
+              folder="menu"
+              value={draft.image_url}
+              onChange={(url) => setDraft({ ...draft, image_url: url })}
+              onBusyChange={setUploading}
+              hint="Upload a photo from your computer or phone (up to 10 MB). Without one, the category photo is used."
+            />
             <div className="switch-row">
               <div>
                 <strong>Featured</strong>

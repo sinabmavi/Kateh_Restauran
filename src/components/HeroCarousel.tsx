@@ -1,17 +1,32 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowRight } from 'lucide-react'
-import { brandCopy } from '../lib/brand'
+import { fetchBanners, mergeBanners, readCachedBanners, writeCachedBanners } from '../lib/banners'
 import { SmartImage } from './ui/SmartImage'
 
 const AUTOPLAY_MS = 6500
 
 export function HeroCarousel() {
-  const slides = brandCopy.heroSlides
+  const [slides, setSlides] = useState(() => mergeBanners(readCachedBanners()))
   const [index, setIndex] = useState(0)
   const [paused, setPaused] = useState(false)
   const touchStart = useRef<number | null>(null)
   const reducedMotion = useRef(typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches)
+
+  useEffect(() => {
+    let cancelled = false
+    fetchBanners()
+      .then((rows) => {
+        if (cancelled) return
+        writeCachedBanners(rows)
+        setSlides(mergeBanners(rows))
+      })
+      // Keep the built-in slides if the banners cannot be loaded.
+      .catch(() => undefined)
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useEffect(() => {
     if (paused || reducedMotion.current) return
@@ -43,7 +58,7 @@ export function HeroCarousel() {
       {slides.map((slide, slideIndex) => {
         const active = slideIndex === index
         return (
-          <article key={slide.title} className={`hero__slide${active ? ' is-active' : ''}`} aria-hidden={!active} aria-roledescription="slide" aria-label={`${slideIndex + 1} of ${slides.length}`}>
+          <article key={slideIndex} className={`hero__slide${active ? ' is-active' : ''}`} aria-hidden={!active} aria-roledescription="slide" aria-label={`${slideIndex + 1} of ${slides.length}`}>
             <SmartImage src={slide.image} alt={slide.imageAlt} width={900} eager={slideIndex === 0} className="hero__image" />
             <div className="hero__shade" />
             <div className="hero__content">
@@ -59,9 +74,9 @@ export function HeroCarousel() {
         )
       })}
       <div className="hero__dots" role="tablist" aria-label="Choose slide">
-        {slides.map((slide, dotIndex) => (
+        {slides.map((_, dotIndex) => (
           <button
-            key={slide.title}
+            key={dotIndex}
             type="button"
             role="tab"
             aria-selected={dotIndex === index}

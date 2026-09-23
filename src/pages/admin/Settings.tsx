@@ -7,6 +7,7 @@ import { errorMessage, unwrap } from '../../lib/errors'
 import { formatMoney } from '../../lib/format'
 import { supabase } from '../../lib/supabase'
 import type { RestaurantSettings } from '../../lib/types'
+import BannerSettings from './BannerSettings'
 
 const CURRENCIES = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'NZD', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'HUF', 'ILS', 'SGD', 'HKD', 'MXN', 'BRL']
 
@@ -242,6 +243,8 @@ export default function SettingsPage() {
           {busy ? 'Saving…' : 'Save settings'}
         </button>
       </div>
+
+      <BannerSettings />
     </>
   )
 }
