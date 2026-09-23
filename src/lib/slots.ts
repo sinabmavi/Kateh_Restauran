@@ -14,6 +14,8 @@ export interface Slot {
   end: Date
   label: string
   tableId: string
+  /** Someone already holds this table for an overlapping time. Shown, but cannot be chosen. */
+  booked: boolean
 }
 
 export type DayStatus = 'open' | 'closed' | 'blocked'
@@ -55,43 +57,42 @@ export function partySizeLimit(settings: RestaurantSettings, tables: RestaurantT
   return { max, exceeded: settings.max_party_size > max }
 }
 
+/** Tables in a natural order: "Table 2" before "Table 10". */
+export function sortTables(tables: RestaurantTable[]): RestaurantTable[] {
+  return [...tables].sort((a, b) => a.table_name.localeCompare(b.table_name, undefined, { numeric: true, sensitivity: 'base' }))
+}
+
 interface SlotInput {
   date: Date
   partySize: number
   settings: RestaurantSettings
   hours: BusinessHours[]
   blocked: BlockedDate[]
-  tables: RestaurantTable[]
+  table: RestaurantTable
   busy: BusySlot[]
 }
 
 /**
- * Every bookable slot for one day. Only active tables that fit the party are used, the smallest free table wins,
- * and slots inside the notice window are skipped. The Edge Function re-validates all of this on submit.
+ * Every slot for one table on one day, with the ones that overlap an existing booking marked `booked`.
+ * Slots inside the notice window are skipped. The Edge Function re-validates all of this on submit.
  */
-export function generateSlots({ date, partySize, settings, hours, blocked, tables, busy }: SlotInput): Slot[] {
+export function generateSlots({ date, partySize, settings, hours, blocked, table, busy }: SlotInput): Slot[] {
   if (partySize < 1 || partySize > settings.max_party_size) return []
+  if (!table.is_active || table.capacity < partySize) return []
   if (dayStatus(date, hours, blocked) !== 'open') return []
   const row = hours.find((entry) => entry.weekday === getDay(date))
   if (!row) return []
-
-  const fitting = tables
-    .filter((table) => table.is_active && table.capacity >= partySize)
-    .sort((a, b) => a.capacity - b.capacity || a.table_name.localeCompare(b.table_name))
-  if (fitting.length === 0) return []
 
   const duration = settings.default_reservation_duration_minutes
   const earliest = addHours(restaurantNow(settings.timezone), settings.booking_notice_hours)
   const dayStart = startOfDay(date)
 
-  const busyByTable = new Map<string, Array<[number, number]>>()
+  const taken: Array<[number, number]> = []
   for (const entry of busy) {
+    if (entry.table_id !== table.id) continue
     const start = parseTimeToMinutes(entry.start_time)
     const end = parseTimeToMinutes(entry.end_time)
-    if (start === null || end === null) continue
-    const list = busyByTable.get(entry.table_id) ?? []
-    list.push([start, end])
-    busyByTable.set(entry.table_id, list)
+    if (start !== null && end !== null) taken.push([start, end])
   }
 
   const slots: Slot[] = []
@@ -99,11 +100,13 @@ export function generateSlots({ date, partySize, settings, hours, blocked, table
     const start = addMinutes(dayStart, startMinutes)
     if (start < earliest) continue
     const endMinutes = startMinutes + duration
-    const table = fitting.find((candidate) =>
-      !(busyByTable.get(candidate.id) ?? []).some(([busyStart, busyEnd]) => overlaps(startMinutes, endMinutes, busyStart, busyEnd)),
-    )
-    if (!table) continue
-    slots.push({ start, end: addMinutes(dayStart, endMinutes), label: format(start, 'h:mm a'), tableId: table.id })
+    slots.push({
+      start,
+      end: addMinutes(dayStart, endMinutes),
+      label: format(start, 'h:mm a'),
+      tableId: table.id,
+      booked: taken.some(([busyStart, busyEnd]) => overlaps(startMinutes, endMinutes, busyStart, busyEnd)),
+    })
   }
   return slots
 }

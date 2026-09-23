@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { format } from 'date-fns'
-import { ArrowLeft, ArrowRight, CalendarPlus, Check, Info, Phone, TriangleAlert, Users } from 'lucide-react'
+import { Armchair, ArrowLeft, ArrowRight, CalendarPlus, Check, Info, Phone, TriangleAlert, Users } from 'lucide-react'
 import { PayPalCheckout, FLOW_HANDLED } from '../components/PayPalCheckout'
 import { ErrorState, Field, Skeleton } from '../components/ui/primitives'
 import { useAuth } from '../context/AuthContext'
@@ -14,11 +14,11 @@ import { fetchActiveTables, fetchBlockedDates, fetchBusySlots } from '../lib/dat
 import { AppError, errorMessage, isSlotTakenError } from '../lib/errors'
 import { formatMoney, isValidEmail, isValidPhone, telHref } from '../lib/format'
 import { buildIcs, downloadIcs } from '../lib/ics'
-import { dateKey, dayStatus, generateSlots, partySizeLimit, slotTime, upcomingDates, type Slot } from '../lib/slots'
+import { dateKey, dayStatus, generateSlots, partySizeLimit, slotTime, sortTables, upcomingDates, type Slot } from '../lib/slots'
 import type { CaptureResponse, ReservationCheckoutRequest, ReservationStatus } from '../lib/types'
 import { toCents } from '../../supabase/functions/_shared/rules'
 
-type Step = 1 | 2 | 3
+type Step = 1 | 2 | 3 | 4
 
 interface Outcome {
   reservationId: string
@@ -29,9 +29,10 @@ interface Outcome {
   slot: Slot
   partySize: number
   name: string
+  tableName: string
 }
 
-const STEP_LABELS = ['Party size', 'Date & time', 'Your details']
+const STEP_LABELS = ['Party size', 'Table', 'Date & time', 'Your details']
 
 export default function ReservePage() {
   const settings = useRequiredSettings()
@@ -42,6 +43,7 @@ export default function ReservePage() {
 
   const [step, setStep] = useState<Step>(1)
   const [partySize, setPartySize] = useState<number | null>(null)
+  const [tableId, setTableId] = useState<string | null>(null)
   const [date, setDate] = useState<Date | null>(null)
   const [slot, setSlot] = useState<Slot | null>(null)
   const [form, setForm] = useState({ name: '', email: '', phone: '', requests: '' })
@@ -70,14 +72,16 @@ export default function ReservePage() {
     }))
   }, [user, profile, adminChecked])
 
-  const tables = reference.data?.tables ?? []
+  const tables = useMemo(() => sortTables(reference.data?.tables ?? []), [reference.data])
   const blocked = reference.data?.blocked ?? []
   const limit = partySizeLimit(settings, tables)
+  const table = tables.find((entry) => entry.id === tableId) ?? null
 
   const slots = useMemo(() => {
-    if (!date || !partySize || !busySlots.data) return []
-    return generateSlots({ date, partySize, settings, hours, blocked, tables, busy: busySlots.data })
-  }, [date, partySize, busySlots.data, settings, hours, blocked, tables])
+    if (!date || !partySize || !table || !busySlots.data) return []
+    return generateSlots({ date, partySize, settings, hours, blocked, table, busy: busySlots.data })
+  }, [date, partySize, table, busySlots.data, settings, hours, blocked])
+  const allBooked = slots.length > 0 && slots.every((option) => option.booked)
 
   const depositCents = partySize ? toCents(settings.reservation_deposit_per_guest) * partySize : 0
   const needsDeposit = depositCents > 0
@@ -102,18 +106,19 @@ export default function ReservePage() {
     date: date ? dateKey(date) : '',
     start_time: slot ? slotTime(slot) : '',
     special_requests: form.requests.trim(),
+    table_id: tableId ?? undefined,
   })
 
   const finish = (partial: Pick<Outcome, 'reservationId' | 'status' | 'paid' | 'needsRefund' | 'message'>) => {
     if (!slot || !partySize) return
-    setOutcome({ ...partial, slot, partySize, name: form.name.trim() })
+    setOutcome({ ...partial, slot, partySize, name: form.name.trim(), tableName: table?.table_name ?? '' })
   }
 
   const handleFailure = (error: unknown) => {
     if (isSlotTakenError(error)) {
       busySlots.reload()
       setSlot(null)
-      setStep(2)
+      setStep(3)
     }
   }
 
@@ -188,7 +193,7 @@ export default function ReservePage() {
                 onClick={() => {
                   setOutcome(null)
                   setSlot(null)
-                  setStep(2)
+                  setStep(3)
                   busySlots.reload()
                 }}
               >
@@ -229,6 +234,12 @@ export default function ReservePage() {
               <dt>Party</dt>
               <dd>{outcome.partySize === 1 ? '1 guest' : `${outcome.partySize} guests`}</dd>
             </div>
+            {outcome.tableName && (
+              <div>
+                <dt>Table</dt>
+                <dd>{outcome.tableName}</dd>
+              </div>
+            )}
             <div>
               <dt>Where</dt>
               <dd>{settings.restaurant_address ?? settings.restaurant_name}</dd>
@@ -313,6 +324,7 @@ export default function ReservePage() {
                   <button key={size} type="button" role="radio" aria-checked={partySize === size} className={`party${partySize === size ? ' is-active' : ''}`} onClick={() => {
                       setPartySize(size)
                       setSlot(null)
+                      if (table && table.capacity < size) setTableId(null)
                     }}>
                     <span className="party__num">{size}</span>
                     <span className="party__label">{size === 1 ? 'guest' : 'guests'}</span>
@@ -344,6 +356,52 @@ export default function ReservePage() {
 
           {step === 2 && partySize && (
             <section className="card card--pad reserve__panel fade-up">
+              <h2 className="reserve__h">
+                <Armchair size={22} /> Choose your table
+              </h2>
+              <div className="table-grid" role="radiogroup" aria-label="Table">
+                {tables.map((option) => {
+                  const fits = option.capacity >= partySize
+                  const selected = tableId === option.id
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      disabled={!fits}
+                      className={`table-pick${selected ? ' is-active' : ''}`}
+                      onClick={() => {
+                        setTableId(option.id)
+                        setSlot(null)
+                      }}
+                    >
+                      <span className="table-pick__name">{option.table_name}</span>
+                      <span className="table-pick__meta">
+                        <Users size={14} /> Up to {option.capacity} {option.capacity === 1 ? 'guest' : 'guests'}
+                      </span>
+                      {option.area && <span className="table-pick__area">{option.area}</span>}
+                      {!fits && <span className="table-pick__note">Too small for {partySize}</span>}
+                    </button>
+                  )
+                })}
+              </div>
+              <div className="reserve__nav">
+                <button type="button" className="btn btn--ghost" onClick={() => setStep(1)}>
+                  <ArrowLeft size={18} /> Back
+                </button>
+                <button type="button" className="btn btn--gold btn--lg" disabled={!table} onClick={() => setStep(3)}>
+                  Continue <ArrowRight size={18} />
+                </button>
+              </div>
+            </section>
+          )}
+
+          {step === 3 && partySize && table && (
+            <section className="card card--pad reserve__panel fade-up">
+              <p className="reserve__table-note">
+                <Armchair size={16} /> {table.table_name} · up to {table.capacity} guests{table.area ? ` · ${table.area}` : ''}
+              </p>
               <h2 className="reserve__h">Choose a date</h2>
               <div className="date-strip hscroll" role="listbox" aria-label="Date">
                 {dates.map((day) => {
@@ -384,39 +442,57 @@ export default function ReservePage() {
                   ) : slots.length === 0 ? (
                     <p className="notice notice--info">
                       <Info size={18} />
-                      <span>No tables are available for {partySize} on {format(date, 'EEEE d MMMM')}. Please try another day.</span>
+                      <span>There are no more times on {format(date, 'EEEE d MMMM')}. Please try another day.</span>
                     </p>
                   ) : (
-                    <div className="slot-grid" role="listbox" aria-label="Time">
-                      {slots.map((option) => (
-                        <button
-                          key={option.start.getTime()}
-                          type="button"
-                          role="option"
-                          aria-selected={slot?.start.getTime() === option.start.getTime()}
-                          className={`slot${slot?.start.getTime() === option.start.getTime() ? ' is-active' : ''}`}
-                          onClick={() => setSlot(option)}
-                        >
-                          {option.label}
-                        </button>
-                      ))}
-                    </div>
+                    <>
+                      {allBooked && (
+                        <p className="notice notice--info">
+                          <Info size={18} />
+                          <span>
+                            {table.table_name} is fully booked on {format(date, 'EEEE d MMMM')}. Please choose another day or table.
+                          </span>
+                        </p>
+                      )}
+                      <div className="slot-grid" role="listbox" aria-label="Time">
+                        {slots.map((option) => {
+                          const selected = !option.booked && slot?.start.getTime() === option.start.getTime()
+                          return (
+                            <button
+                              key={option.start.getTime()}
+                              type="button"
+                              role="option"
+                              aria-selected={selected}
+                              aria-disabled={option.booked}
+                              disabled={option.booked}
+                              title={option.booked ? 'Already booked' : undefined}
+                              className={`slot${selected ? ' is-active' : ''}${option.booked ? ' is-booked' : ''}`}
+                              onClick={() => setSlot(option)}
+                            >
+                              {option.label}
+                              {option.booked && <span className="slot__tag">Booked</span>}
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {!allBooked && slots.some((option) => option.booked) && <p className="muted-note">Times marked “Booked” are already reserved for this table.</p>}
+                    </>
                   )}
                 </div>
               )}
 
               <div className="reserve__nav">
-                <button type="button" className="btn btn--ghost" onClick={() => setStep(1)}>
+                <button type="button" className="btn btn--ghost" onClick={() => setStep(2)}>
                   <ArrowLeft size={18} /> Back
                 </button>
-                <button type="button" className="btn btn--gold btn--lg" disabled={!slot} onClick={() => setStep(3)}>
+                <button type="button" className="btn btn--gold btn--lg" disabled={!slot || slot.booked} onClick={() => setStep(4)}>
                   Continue <ArrowRight size={18} />
                 </button>
               </div>
             </section>
           )}
 
-          {step === 3 && partySize && date && slot && (
+          {step === 4 && partySize && table && date && slot && (
             <div className="reserve__final fade-up">
               <section className="card card--pad reserve__panel">
                 <h2 className="reserve__h">Your details</h2>
@@ -460,6 +536,10 @@ export default function ReservePage() {
                     <dt>Party</dt>
                     <dd>{partySize === 1 ? '1 guest' : `${partySize} guests`}</dd>
                   </div>
+                  <div>
+                    <dt>Table</dt>
+                    <dd>{table.table_name}</dd>
+                  </div>
                 </dl>
 
                 {needsDeposit ? (
@@ -476,7 +556,7 @@ export default function ReservePage() {
                     {busy ? 'Confirming…' : 'Confirm reservation'}
                   </button>
                 )}
-                <button type="button" className="btn btn--ghost btn--block reserve__back" onClick={() => setStep(2)}>
+                <button type="button" className="btn btn--ghost btn--block reserve__back" onClick={() => setStep(3)}>
                   <ArrowLeft size={18} /> Change date or time
                 </button>
               </aside>

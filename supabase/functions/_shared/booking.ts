@@ -22,10 +22,17 @@ export interface ReservationInput {
   date: string
   start_time: string
   special_requests: string
+  /** The table the guest picked. Without it the smallest free table that fits is assigned. */
+  table_id?: string | null
 }
 
+const TABLE_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
 export function parseReservationInput(body: Record<string, unknown>): ReservationInput {
+  const tableId = typeof body.table_id === 'string' ? body.table_id.trim() : ''
+  if (tableId && !TABLE_ID.test(tableId)) throw new HttpError(400, 'INVALID_INPUT', 'That table is not valid.')
   return {
+    table_id: tableId || null,
     full_name: text(body.full_name, 'your name', { min: 2, max: 120 }),
     email: email(body.email),
     phone: phone(body.phone),
@@ -127,7 +134,10 @@ export async function holdReservation(admin: SupabaseClient, input: ReservationI
   const plan = await planBooking(admin, input, settings)
   const depositCents = toCents(settings.reservation_deposit_per_guest) * input.party_size
 
-  for (const table of plan.candidates) {
+  const tables = input.table_id ? plan.candidates.filter((table) => table.id === input.table_id) : plan.candidates
+  if (tables.length === 0) throw new HttpError(409, 'SLOT_TAKEN', 'That table is no longer free at this time. Please pick another time or table.')
+
+  for (const table of tables) {
     const { data, error } = await admin
       .from('reservations')
       .insert({

@@ -233,6 +233,7 @@ export interface ReservationCheckoutRequest {
   /** `HH:mm:ss` */
   start_time: string
   special_requests: string
+  table_id?: Id
 }
 
 export interface OrderCheckoutResponse {
