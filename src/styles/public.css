@@ -782,6 +782,8 @@
   gap: 16px;
   padding: 4px var(--gutter) 10px;
   margin-inline: calc(var(--gutter) * -1);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 @media (min-width: 900px) {
@@ -804,6 +806,11 @@
   min-width: 0;
 }
 
+.cats-wrap.can-left .cats,
+.cats-wrap.can-right .cats {
+  cursor: grab;
+}
+
 .cats-wrap.can-left .cats {
   -webkit-mask-image: linear-gradient(90deg, transparent 0, #000 64px);
   mask-image: linear-gradient(90deg, transparent 0, #000 64px);
@@ -819,23 +826,9 @@
   mask-image: linear-gradient(90deg, transparent 0, #000 64px, #000 calc(100% - 64px), transparent 100%);
 }
 
-.cats {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.cats-wrap.can-left .cats,
-.cats-wrap.can-right .cats {
-  cursor: grab;
-}
-
 .cats.is-dragging {
   cursor: grabbing;
   scroll-snap-type: none;
-}
-
-.cats.is-dragging .cat {
-  pointer-events: none;
 }
 
 .cats__arrow {
@@ -933,6 +926,10 @@
 .cat.is-active .cat__label {
   color: var(--gold-ink);
   font-weight: 700;
+}
+
+.cats.is-dragging .cat {
+  pointer-events: none;
 }
 
 /* ============================================================== dishes */
@@ -1071,6 +1068,7 @@
 .dish__desc {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   font-size: 12.5px;
@@ -1104,17 +1102,17 @@
   transition: transform 0.2s var(--ease);
 }
 
+.dish__add:disabled {
+  opacity: 0.4;
+  box-shadow: none;
+}
+
 .dish__add:hover:not(:disabled) {
   transform: scale(1.08);
 }
 
 .dish__add:active:not(:disabled) {
   transform: scale(0.9);
-}
-
-.dish__add:disabled {
-  opacity: 0.4;
-  box-shadow: none;
 }
 
 .dish__add.is-popped {
@@ -2680,6 +2678,12 @@ a.list__title:hover {
     box-shadow 0.2s;
 }
 
+.table-pick:disabled {
+  background: var(--cream-50);
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .table-pick:hover:not(:disabled) {
   border-color: var(--gold);
 }
@@ -2718,12 +2722,6 @@ a.list__title:hover {
 
 .table-pick.is-active .table-pick__area {
   color: rgba(255, 255, 255, 0.9);
-}
-
-.table-pick:disabled {
-  background: var(--cream-50);
-  opacity: 0.55;
-  cursor: not-allowed;
 }
 
 .reserve__table-note {

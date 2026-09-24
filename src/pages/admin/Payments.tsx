@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { CircleDollarSign, CreditCard, Search, TriangleAlert } from 'lucide-react'
+import { CircleDollarSign, CreditCard, RefreshCw, Search, TriangleAlert } from 'lucide-react'
 import { AdminPageHead, MetricCard } from '../../components/admin'
 import { PaymentBadge } from '../../components/badges'
 import { EmptyState, ErrorState, Skeleton } from '../../components/ui/primitives'
@@ -140,7 +140,15 @@ export default function PaymentsPage() {
 
   return (
     <>
-      <AdminPageHead title="Payments" subtitle="Every PayPal payment for orders and reservation deposits." />
+      <AdminPageHead
+        title="Payments"
+        subtitle="Every PayPal payment for orders and reservation deposits."
+        actions={
+          <button type="button" className="btn btn--ghost btn--sm" disabled={state.loading} onClick={state.reload}>
+            <RefreshCw size={15} /> {state.loading && state.data ? 'Refreshing…' : 'Refresh'}
+          </button>
+        }
+      />
 
       <div className="metrics">
         {(
