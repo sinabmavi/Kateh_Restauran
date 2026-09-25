@@ -6,15 +6,22 @@ import {
   BellOff,
   CalendarCheck,
   CalendarOff,
+  ChartColumn,
+  ChevronDown,
   Clock,
   CreditCard,
   ExternalLink,
+  Gift,
+  HeartHandshake,
   LayoutDashboard,
   LogOut,
+  Mail,
   Menu as MenuIcon,
   Settings,
   ShieldCheck,
   ShoppingBag,
+  Trophy,
+  Users,
   UtensilsCrossed,
 } from 'lucide-react'
 import { Emblem } from '../../components/Emblem'
@@ -36,18 +43,58 @@ const NAV = [
   { to: '/admin/admins', label: 'Admins', icon: ShieldCheck, end: false, superOnly: true },
 ]
 
+const CLUB_BASE = '/admin/club'
+
+const CLUB = [
+  { to: `${CLUB_BASE}/customers`, label: 'Customers', icon: Users },
+  { to: `${CLUB_BASE}/loyalty`, label: 'Loyalty & Rewards', icon: Gift },
+  { to: `${CLUB_BASE}/games`, label: 'Games & Missions', icon: Trophy },
+  { to: `${CLUB_BASE}/email`, label: 'Email Marketing', icon: Mail },
+  { to: `${CLUB_BASE}/analytics`, label: 'Customer Analytics', icon: ChartColumn },
+]
+
 function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { awaiting } = useAdminOrders()
   const { isSuperAdmin } = useAuth()
+  const location = useLocation()
+  const inClub = location.pathname.startsWith(CLUB_BASE)
+  const [clubOpen, setClubOpen] = useState(inClub)
+
+  useEffect(() => {
+    if (inClub) setClubOpen(true)
+  }, [inClub])
+
+  const renderLink = ({ to, label, icon: Icon, end, badge }: (typeof NAV)[number]) => (
+    <NavLink key={to} to={to} end={end} onClick={onNavigate} className={({ isActive }) => `snav__link${isActive ? ' is-active' : ''}`}>
+      <Icon size={19} />
+      <span>{label}</span>
+      {badge && awaiting > 0 && <span className="snav__badge">{awaiting}</span>}
+    </NavLink>
+  )
+
   return (
     <nav className="snav" aria-label="Dashboard">
-      {NAV.filter((item) => !item.superOnly || isSuperAdmin).map(({ to, label, icon: Icon, end, badge }) => (
-        <NavLink key={to} to={to} end={end} onClick={onNavigate} className={({ isActive }) => `snav__link${isActive ? ' is-active' : ''}`}>
-          <Icon size={19} />
-          <span>{label}</span>
-          {badge && awaiting > 0 && <span className="snav__badge">{awaiting}</span>}
-        </NavLink>
-      ))}
+      {NAV.filter((item) => !item.superOnly).map(renderLink)}
+
+      <div className={`snav__group${clubOpen ? ' is-open' : ''}${inClub ? ' has-active' : ''}`}>
+        <button type="button" className="snav__link snav__group-toggle" aria-expanded={clubOpen} aria-controls="snav-club" onClick={() => setClubOpen((open) => !open)}>
+          <HeartHandshake size={19} />
+          <span>Customer Club</span>
+          <ChevronDown size={17} className="snav__chevron" aria-hidden />
+        </button>
+        <div id="snav-club" className="snav__sub" role="group" aria-label="Customer Club">
+          <div className="snav__sub-inner">
+            {CLUB.map(({ to, label, icon: Icon }) => (
+              <NavLink key={to} to={to} onClick={onNavigate} tabIndex={clubOpen ? undefined : -1} className={({ isActive }) => `snav__link snav__sublink${isActive ? ' is-active' : ''}`}>
+                <Icon size={17} />
+                <span>{label}</span>
+              </NavLink>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      {isSuperAdmin && NAV.filter((item) => item.superOnly).map(renderLink)}
     </nav>
   )
 }
@@ -60,7 +107,7 @@ export default function AdminLayout() {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const current = NAV.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
+  const current = [...NAV, ...CLUB].find((item) => ('end' in item && item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
 
   useEffect(() => {
     const name = settings?.restaurant_name ?? 'Dashboard'

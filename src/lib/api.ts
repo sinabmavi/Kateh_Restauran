@@ -12,7 +12,7 @@ import type {
   ReservationCheckoutResponse,
 } from './types'
 
-async function callFunction<T>(name: 'create-checkout' | 'capture-checkout' | 'manage-admins', body: unknown): Promise<T> {
+async function callFunction<T>(name: 'create-checkout' | 'capture-checkout' | 'manage-admins' | 'marketing-email', body: unknown): Promise<T> {
   const { data, error } = await supabase.functions.invoke(name, { body: body as Record<string, unknown> })
   if (!error) return data as T
 
@@ -55,4 +55,34 @@ export function updateAdmin(userId: Id, input: AdminAccountInput) {
 
 export function removeAdmin(userId: Id) {
   return callFunction<{ user_id: Id }>('manage-admins', { action: 'remove', user_id: userId })
+}
+
+/* ---------------------------------------------------------- Email Marketing */
+
+export interface SendResult {
+  run_id: string | null
+  recipients: number
+  sent: number
+  failed: number
+  firstError: string | null
+}
+
+export function marketingSendNow(emailId: Id) {
+  return callFunction<SendResult>('marketing-email', { action: 'send_now', email_id: emailId })
+}
+
+export function marketingRunNow(emailId: Id) {
+  return callFunction<SendResult>('marketing-email', { action: 'run_now', email_id: emailId })
+}
+
+export function marketingRetryFailed(runId: Id) {
+  return callFunction<{ retried: number; sent: number; failed: number; firstError: string | null }>('marketing-email', { action: 'retry_failed', run_id: runId })
+}
+
+export function marketingSendTest(message: unknown) {
+  return callFunction<{ results: Array<{ to: string; ok: boolean; error?: string }> }>('marketing-email', { action: 'send_test', message })
+}
+
+export function setEmailSubscription(userId: string, token: string, subscribed: boolean) {
+  return callFunction<{ ok: boolean; subscribed: boolean }>('marketing-email', { action: subscribed ? 'resubscribe' : 'unsubscribe', u: userId, t: token })
 }

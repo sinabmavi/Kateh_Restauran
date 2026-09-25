@@ -5,7 +5,7 @@ import { Field } from '../components/ui/primitives'
 import { useAuth } from '../context/AuthContext'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { errorMessage } from '../lib/errors'
-import { isValidEmail, isValidPhone } from '../lib/format'
+import { isValidBirthday, isValidEmail, isValidPhone } from '../lib/format'
 
 type Tab = 'signin' | 'signup'
 
@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [confirmEmail, setConfirmEmail] = useState<string | null>(null)
-  const [form, setForm] = useState({ fullName: '', phone: '', email: '', password: '' })
+  const [form, setForm] = useState({ fullName: '', phone: '', birthday: '', email: '', password: '' })
   useDocumentMeta('Sign in')
 
   useEffect(() => setError(null), [tab])
@@ -36,6 +36,7 @@ export default function LoginPage() {
     if (tab === 'signup') {
       if (form.fullName.trim().length < 2) return setError('Please enter your full name.')
       if (!isValidPhone(form.phone)) return setError('Please enter a phone number we can reach you on.')
+      if (!isValidBirthday(form.birthday)) return setError('Please enter your date of birth.')
     }
 
     setBusy(true)
@@ -104,6 +105,19 @@ export default function LoginPage() {
               </Field>
               <Field label="Phone" htmlFor="auth-phone">
                 <input id="auth-phone" className="input" type="tel" autoComplete="tel" value={form.phone} onChange={set('phone')} required />
+              </Field>
+              <Field label="Date of birth" htmlFor="auth-birthday" hint="So we can send you a birthday treat.">
+                <input
+                  id="auth-birthday"
+                  className="input"
+                  type="date"
+                  autoComplete="bday"
+                  min="1900-01-01"
+                  max={new Date().toISOString().slice(0, 10)}
+                  value={form.birthday}
+                  onChange={set('birthday')}
+                  required
+                />
               </Field>
             </>
           )}

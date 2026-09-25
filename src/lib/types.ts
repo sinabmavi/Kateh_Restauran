@@ -103,6 +103,8 @@ export interface Profile {
   city: string | null
   postcode: string | null
   delivery_notes: string | null
+  /** `yyyy-MM-dd`. Added by the Customer Club SQL (09_customer_club.sql). */
+  birthday?: string | null
   created_at: string
   updated_at: string
 }

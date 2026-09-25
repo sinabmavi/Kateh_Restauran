@@ -58,3 +58,12 @@ export function isValidEmail(value: string): boolean {
 export function isValidPhone(value: string): boolean {
   return value.replace(/[^\d]/g, '').length >= 7
 }
+
+/** A real `yyyy-MM-dd` date in the past, no earlier than 1900. */
+export function isValidBirthday(value: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
+  if (!match) return false
+  const date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])))
+  if (date.getUTCDate() !== Number(match[3])) return false
+  return Number(match[1]) >= 1900 && date.getTime() < Date.now()
+}

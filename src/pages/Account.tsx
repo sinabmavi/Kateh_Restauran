@@ -12,7 +12,7 @@ import { useAsync } from '../hooks/useAsync'
 import { useDocumentMeta } from '../hooks/useDocumentMeta'
 import { fetchActiveMenuItems, fetchOrderItems, normaliseOrder } from '../lib/data'
 import { errorMessage, unwrap } from '../lib/errors'
-import { formatDateOnly, formatMoney, formatTimeOfDay, formatTimestamp, isValidPhone, parseDateOnly, pluralise } from '../lib/format'
+import { formatDateOnly, formatMoney, formatTimeOfDay, formatTimestamp, isValidBirthday, isValidPhone, parseDateOnly, pluralise } from '../lib/format'
 import { buildIcs, downloadIcs } from '../lib/ics'
 import { isOrderable } from '../lib/categories'
 import { supabase } from '../lib/supabase'
@@ -208,13 +208,17 @@ function ProfileTab() {
     city: profile?.city ?? '',
     postcode: profile?.postcode ?? '',
     delivery_notes: profile?.delivery_notes ?? '',
+    birthday: profile?.birthday ?? '',
   })
+  // Only offered once the database has the column (after 09_customer_club.sql), so saving never fails before that.
+  const supportsBirthday = Boolean(profile && 'birthday' in profile)
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) => setForm((current) => ({ ...current, [key]: event.target.value }))
 
   const submit = async (event: FormEvent) => {
     event.preventDefault()
     if (form.full_name.trim().length < 2) return toast.error('Please enter your full name.')
     if (form.phone.trim() && !isValidPhone(form.phone)) return toast.error('That phone number does not look right.')
+    if (form.birthday && !isValidBirthday(form.birthday)) return toast.error('That date of birth does not look right.')
     setBusy(true)
     try {
       await saveProfile({
@@ -224,6 +228,7 @@ function ProfileTab() {
         city: form.city.trim(),
         postcode: form.postcode.trim(),
         delivery_notes: form.delivery_notes.trim(),
+        ...(supportsBirthday ? { birthday: form.birthday || null } : {}),
       })
       toast.success('Your profile has been saved.')
     } catch (failure) {
@@ -246,6 +251,11 @@ function ProfileTab() {
           <input id="pf-phone" className="input" type="tel" autoComplete="tel" value={form.phone} onChange={set('phone')} />
         </Field>
       </div>
+      {supportsBirthday && (
+        <Field label="Date of birth" htmlFor="pf-birthday" hint="We like to send a little treat on your birthday.">
+          <input id="pf-birthday" className="input" type="date" autoComplete="bday" min="1900-01-01" max={new Date().toISOString().slice(0, 10)} value={form.birthday} onChange={set('birthday')} />
+        </Field>
+      )}
       <h3 className="checkout__h">Default delivery address</h3>
       <Field label="Street address" htmlFor="pf-line">
         <input id="pf-line" className="input" autoComplete="street-address" value={form.address_line} onChange={set('address_line')} />

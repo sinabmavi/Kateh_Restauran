@@ -9,6 +9,8 @@ interface SignUpDetails {
   phone: string
   email: string
   password: string
+  /** `yyyy-MM-dd` */
+  birthday: string
 }
 
 interface AuthState {
@@ -102,11 +104,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (error) throw new AppError(error.message)
   }, [])
 
-  const signUp = useCallback(async ({ fullName, phone, email, password }: SignUpDetails) => {
+  const signUp = useCallback(async ({ fullName, phone, email, password, birthday }: SignUpDetails) => {
     const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { full_name: fullName.trim(), phone: phone.trim() } },
+      options: { data: { full_name: fullName.trim(), phone: phone.trim(), birthday } },
     })
     if (error) throw new AppError(error.message)
     return { needsConfirmation: !data.session }

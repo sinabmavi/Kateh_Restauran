@@ -19,6 +19,7 @@ import MorePage from './pages/More'
 import NotFoundPage from './pages/NotFound'
 import OrderTrackingPage from './pages/OrderTracking'
 import ReservePage from './pages/Reserve'
+import UnsubscribePage from './pages/Unsubscribe'
 
 // The dashboard is only downloaded by people who open /admin.
 const AdminLogin = lazy(() => import('./pages/admin/AdminLogin'))
@@ -63,7 +64,7 @@ export default function App() {
                       <Route path="login" element={<LoginPage />} />
                       <Route path="reserve" element={<ReservePage />} />
                       <Route path="more" element={<MorePage />} />
-                      <Route
+                      <Route path="unsubscribe" element={<UnsubscribePage />} />                      <Route
                         path="checkout"
                         element={
                           <RequireAuth>

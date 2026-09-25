@@ -14,3 +14,7 @@ verify_jwt = false
 # Called by the reservations database trigger, which sends no user token. The function trusts only the reservation id.
 [functions.reservation-email]
 verify_jwt = false
+
+# Called every minute by pg_cron and by the dashboard. Admin actions check the user's token inside.
+[functions.marketing-email]
+verify_jwt = false
